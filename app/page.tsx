@@ -3,9 +3,8 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Play, Pause, Download, Volume2, Music, Zap, Waves, FileAudio, Sparkles } from 'lucide-react';
+import { Upload, Download, Zap, Waves, FileAudio, Sparkles } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ModeToggle } from '@/components/mode-switch';
 
