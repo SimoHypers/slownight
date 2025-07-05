@@ -113,17 +113,6 @@ export default function AudioProcessor() {
     }
   };
 
-  const togglePlayback = (audioRef: React.RefObject<HTMLAudioElement>) => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
   const downloadProcessedAudio = () => {
     if (processedAudioUrl) {
       const selectedStyleData = PRESET_STYLES.find(s => s.id === selectedStyle);
