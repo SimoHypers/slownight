@@ -87,7 +87,7 @@ export default function AudioProcessor() {
         setProgress(prev => Math.min(prev + 8, 90));
       }, 300);
 
-      const response = await fetch('https://slownight-backend-production.up.railway.app', {
+      const response = await fetch('https://slownight-backend-production.up.railway.app/process-audio', {
         method: 'POST',
         body: formData,
       });
