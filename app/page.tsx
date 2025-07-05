@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Play, Pause, Download, Volume2, Music, Zap, Waves } from 'lucide-react';
+import { Upload, Play, Pause, Download, Volume2, Music, Zap, Waves, FileAudio, Sparkles } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ModeToggle } from '@/components/mode-switch';
 
 interface AudioStyle {
   id: string;
@@ -144,46 +145,62 @@ export default function AudioProcessor() {
 
   const getStyleDescription = (styleId: string) => {
     return styleId === 'slowed_reverb' 
-      ? 'Dreamy, chill vibe with spacious reverb (0.8x speed, 50% reverb, -1 pitch)'
-      : 'Fast, energetic, high-pitched anime style (1.25x speed, 10% reverb, +2 pitch)';
+      ? 'Dreamy, chill vibe with spacious reverb'
+      : 'Fast, energetic, high-pitched anime style';
   };
 
   const selectedStyleData = PRESET_STYLES.find(s => s.id === selectedStyle);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-white flex items-center justify-center gap-3">
-            <Music className="h-10 w-10" />
-            Audio Effects Studio
+    <div className="min-h-screen bg-background p-4 md:p-6">
+      <nav className="shadow-sm border-b text-foreground h-16">
+        <div className="flex justify-center items-center h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-6">
+          <h1 className='text-3xl font-bold italic text-transparent p-2 inline-block bg-clip-text bg-gradient-to-r from-rose-500 from- to-rose-300 to-100%'>
+            SlowNight
           </h1>
-          <p className="text-blue-200">Transform your audio with Slowed + Reverb or Nightcore styles</p>
+          <div className='absolute right-0 flex items-center mr-6'>
+            <ModeToggle />
+          </div>
         </div>
-
+      </nav>
+      <div className="max-w-4xl mx-auto space-y-8 my-6">
         {/* File Upload */}
-        <Card className="bg-white/10 backdrop-blur-lg border-white/20">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Upload className="h-5 w-5" />
-              Upload Audio File
-            </CardTitle>
-            <CardDescription className="text-blue-200">
-              Select an audio file to get started
-            </CardDescription>
+        <Card className="relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1"></div>
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Upload className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Upload Audio File</CardTitle>
+                <CardDescription className="text-base">
+                  Select your audio file to get started
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div
-                className="border-2 border-dashed border-white/30 rounded-lg p-8 text-center cursor-pointer hover:border-white/50 transition-colors"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-12 w-12 text-white/60 mx-auto mb-4" />
-                <p className="text-white/80">
-                  {file ? file.name : 'Click to upload or drag and drop'}
-                </p>
-                <p className="text-white/60 text-sm">MP3, WAV, FLAC, AAC up to 50MB</p>
+            <div
+              className="group relative border-2 border-dashed border-muted-foreground/25 rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 transition-all duration-200 bg-muted/20 hover:bg-muted/30"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <div className="flex flex-col items-center gap-4">
+                <div className="p-4 bg-primary/10 rounded-full group-hover:bg-primary/15 transition-colors">
+                  {file ? (
+                    <FileAudio className="h-8 w-8 text-primary" />
+                  ) : (
+                    <Upload className="h-8 w-8 text-primary" />
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <p className="text-lg font-medium">
+                    {file ? file.name : 'Click to upload or drag & drop'}
+                  </p>
+                  <p className="text-muted-foreground">
+                    MP3, WAV, FLAC, AAC up to 50MB
+                  </p>
+                </div>
               </div>
               <input
                 ref={fileInputRef}
@@ -198,49 +215,62 @@ export default function AudioProcessor() {
 
         {/* Style Selection */}
         {file && (
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Volume2 className="h-5 w-5" />
-                Choose Audio Style
-              </CardTitle>
-              <CardDescription className="text-blue-200">
-                Select your preferred audio transformation
-              </CardDescription>
+          <Card className="relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1"></div>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Choose Audio Style</CardTitle>
+                  <CardDescription className="text-base">
+                    Select your preferred audio transformation
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               {/* Style Options */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {PRESET_STYLES.map((style) => (
                   <div
                     key={style.id}
-                    className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    className={`group relative p-6 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
                       selectedStyle === style.id
-                        ? 'border-purple-400 bg-purple-500/20'
-                        : 'border-white/30 bg-white/5 hover:border-white/50'
+                        ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10'
+                        : 'border-muted-foreground/20 hover:border-primary/30 hover:bg-muted/30'
                     }`}
                     onClick={() => setSelectedStyle(style.id)}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-full ${
+                    <div className="flex items-start gap-4">
+                      <div className={`p-3 rounded-xl transition-all ${
                         selectedStyle === style.id 
-                          ? 'bg-purple-500 text-white' 
-                          : 'bg-white/20 text-white/80'
+                          ? 'bg-primary text-primary-foreground shadow-sm' 
+                          : 'bg-muted group-hover:bg-primary/10'
                       }`}>
                         {getStyleIcon(style.id)}
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-white font-semibold text-lg">{style.name}</h3>
-                        <p className="text-white/70 text-sm mt-1">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-lg mb-2">{style.name}</h3>
+                        <p className="text-muted-foreground text-sm leading-relaxed mb-3">
                           {getStyleDescription(style.id)}
                         </p>
-                        <div className="mt-2 text-xs text-white/60">
-                          Speed: {style.settings.speed}x • Reverb: {style.settings.reverb}% • Pitch: {style.settings.pitch > 0 ? '+' : ''}{style.settings.pitch}
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          <span className="px-2 py-1 bg-muted rounded-md">
+                            Speed: {style.settings.speed}x
+                          </span>
+                          <span className="px-2 py-1 bg-muted rounded-md">
+                            Reverb: {style.settings.reverb}%
+                          </span>
+                          <span className="px-2 py-1 bg-muted rounded-md">
+                            Pitch: {style.settings.pitch > 0 ? '+' : ''}{style.settings.pitch}
+                          </span>
                         </div>
                       </div>
                     </div>
                     {selectedStyle === style.id && (
-                      <div className="absolute top-2 right-2 w-3 h-3 bg-purple-400 rounded-full"></div>
+                      <div className="absolute top-3 right-3 w-3 h-3 bg-primary rounded-full shadow-sm"></div>
                     )}
                   </div>
                 ))}
@@ -250,11 +280,12 @@ export default function AudioProcessor() {
               <Button
                 onClick={processAudio}
                 disabled={isProcessing}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-lg py-6"
+                className="w-full h-14 text-lg font-semibold relative overflow-hidden cursor-pointer"
+                size="lg"
               >
                 {isProcessing ? (
                   <>
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    <div className="animate-spin mr-3 h-5 w-5 border-2 border-current border-t-transparent rounded-full"></div>
                     Processing {selectedStyleData?.name}...
                   </>
                 ) : (
@@ -267,9 +298,9 @@ export default function AudioProcessor() {
 
               {/* Progress Bar */}
               {isProcessing && (
-                <div className="space-y-2">
-                  <Progress value={progress} className="w-full" />
-                  <p className="text-center text-white/80 text-sm">
+                <div className="space-y-3">
+                  <Progress value={progress} className="h-2" />
+                  <p className="text-center text-muted-foreground text-sm">
                     Transforming your audio with {selectedStyleData?.name}... {progress}%
                   </p>
                 </div>
@@ -280,61 +311,50 @@ export default function AudioProcessor() {
 
         {/* Error Display */}
         {error && (
-          <Alert className="bg-red-500/20 border-red-500/50">
-            <AlertDescription className="text-red-200">
+          <Alert className="border-destructive/50 bg-destructive/10">
+            <AlertDescription className="text-destructive">
               {error}
             </AlertDescription>
           </Alert>
         )}
 
-        {/* Original Audio Preview */}
-        {file && (
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20">
-            <CardHeader>
-              <CardTitle className="text-white">Original Audio</CardTitle>
-              <CardDescription className="text-blue-200">
-                Preview your uploaded file
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <audio
-                ref={originalAudioRef}
-                controls
-                className="w-full bg-white/10 rounded-lg"
-              >
-                Your browser does not support the audio element.
-              </audio>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Processed Audio */}
         {processedAudioUrl && (
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                {getStyleIcon(selectedStyle)}
-                {selectedStyleData?.name} Result
-              </CardTitle>
-              <CardDescription className="text-blue-200">
-                Your audio transformed with {selectedStyleData?.name} effects
-              </CardDescription>
+          <Card className="relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1"></div>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/15 rounded-lg">
+                  {getStyleIcon(selectedStyle)}
+                </div>
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {selectedStyleData?.name} Result
+                    <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">
+                      Ready
+                    </span>
+                  </CardTitle>
+                  <CardDescription>
+                    Your audio transformed with {selectedStyleData?.name} effects
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <audio
                 ref={audioRef}
                 src={processedAudioUrl}
                 controls
-                className="w-full bg-white/10 rounded-lg"
+                className="w-full h-12 bg-muted rounded-lg"
                 onEnded={() => setIsPlaying(false)}
               >
                 Your browser does not support the audio element.
               </audio>
               <Button
                 onClick={downloadProcessedAudio}
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white flex items-center gap-2"
+                className="w-full h-12 text-base font-semibold cursor-pointer"
               >
-                <Download className="h-4 w-4" />
+                <Download className="h-5 w-5 mr-2" />
                 Download {selectedStyleData?.name} Audio
               </Button>
             </CardContent>
