@@ -44,7 +44,6 @@ export default function AudioProcessor() {
   const [selectedStyle, setSelectedStyle] = useState<string>('slowed_reverb');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedAudioUrl, setProcessedAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
 
@@ -334,7 +333,6 @@ export default function AudioProcessor() {
                 src={processedAudioUrl}
                 controls
                 className="w-full h-12 bg-muted rounded-lg"
-                onEnded={() => setIsPlaying(false)}
               >
                 Your browser does not support the audio element.
               </audio>
