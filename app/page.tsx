@@ -1,352 +1,378 @@
-'use client';
+'use client'
 
-import React, { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Upload, Download, Zap, Waves, FileAudio, Sparkles } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ModeToggle } from '@/components/mode-switch';
+import { useState } from 'react'
+import { Input } from "@/components/ui/input"
+import { Slider } from "@/components/ui/slider"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { CustomAudioPlayer } from "@/components/CustomAudioPlayer"
+import { Upload, Music, Headphones, Settings, Download, Zap, Waves } from 'lucide-react'
+import { ModeToggle } from '@/components/mode-switch'
+import Link from 'next/link'
 
-interface AudioStyle {
-  id: string;
-  name: string;
-  settings: {
-    speed: number;
-    reverb: number;
-    pitch: number;
-  };
-}
+export default function Home() {
+  const [file, setFile] = useState<File | null>(null)
+  const [volume, setVolume] = useState(100)
+  const [speed, setSpeed] = useState(1)
+  const [reverbDecay, setReverbDecay] = useState(0.01)
+  const [bassBoost, setBassBoost] = useState(0)
+  const [audioSrc, setAudioSrc] = useState<string | null>(null)
+  const [audioName, setAudioName] = useState<string>('')
+  type PresetKey = 'slowed+reverb' | 'nightcore'
+  type Preset = {
+    name: string
+    icon: React.ElementType
+    speed: number
+    reverbDecay: number
+    bassBoost: number
+    description: string
+  }
 
-const PRESET_STYLES: AudioStyle[] = [
-  {
-    id: 'slowed_reverb',
-    name: 'Slowed + Reverb',
-    settings: {
-      speed: 0.8,
-      reverb: 50.0,
-      pitch: -1.0
-    }
-  },
-  {
-    id: 'nightcore',
-    name: 'Nightcore',
-    settings: {
-      speed: 1.25,
-      reverb: 10.0,
-      pitch: 2.0
+  const presets: Record<PresetKey, Preset> = {
+    'slowed+reverb': {
+      name: 'Slowed + Reverb',
+      icon: Waves,
+      speed: 0.90,
+      reverbDecay: 1.5,
+      bassBoost: 2,
+      description: 'Chill vibes with deep reverb'
+    },
+    'nightcore': {
+      name: 'Nightcore',
+      icon: Zap,
+      speed: 1.2,
+      reverbDecay: 1,
+      bassBoost: 1,
+      description: 'High-energy fast tempo'
     }
   }
-];
 
-export default function AudioProcessor() {
-  const [file, setFile] = useState<File | null>(null);
-  const [selectedStyle, setSelectedStyle] = useState<string>('slowed_reverb');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processedAudioUrl, setProcessedAudioUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const originalAudioRef = useRef<HTMLAudioElement>(null);
+  const [activePreset, setActivePreset] = useState<PresetKey | null>(null)
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (selectedFile) {
-      if (selectedFile.type.startsWith('audio/')) {
-        setFile(selectedFile);
-        setError(null);
-        setProcessedAudioUrl(null);
-        
-        // Create URL for original audio preview
-        const url = URL.createObjectURL(selectedFile);
-        if (originalAudioRef.current) {
-          originalAudioRef.current.src = url;
-        }
-      } else {
-        setError('Please select an audio file (MP3, WAV, etc.)');
-      }
+    const uploadedFile = event.target.files?.[0]
+    if (uploadedFile) {
+      setFile(uploadedFile)
+      setAudioSrc(URL.createObjectURL(uploadedFile))
+      setAudioName(uploadedFile.name)
+    } else {
+      setAudioSrc(null)
+      setAudioName('')
     }
-  };
+  }
 
-  const processAudio = async () => {
-    if (!file) return;
+  const handleDownload = async (format: 'mp3' | 'wav', blob: Blob) => {
+    const fileName = `${audioName.split('.')[0]}_processed.${format}`
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
-    setIsProcessing(true);
-    setError(null);
-    setProgress(0);
+  const handleResetAudio = () => {
+    setFile(null)
+    setAudioSrc(null)
+    setAudioName('')
+    setActivePreset(null)
+  }
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('style', selectedStyle);
-
-    try {
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 8, 90));
-      }, 300);
-
-      const response = await fetch('https://slownight-backend-production.up.railway.app/process-audio', {
-        method: 'POST',
-        body: formData,
-      });
-
-      clearInterval(progressInterval);
-      setProgress(100);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to process audio');
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      setProcessedAudioUrl(url);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process audio. Please try again.');
-      console.error('Audio processing error:', err);
-    } finally {
-      setIsProcessing(false);
-      setTimeout(() => setProgress(0), 1000);
+  const applyPreset = (presetKey: PresetKey) => {
+    const preset = presets[presetKey]
+    if (preset) {
+      setSpeed(preset.speed)
+      setReverbDecay(preset.reverbDecay)
+      setBassBoost(preset.bassBoost)
+      setActivePreset(presetKey)
     }
-  };
+  }
 
-  const downloadProcessedAudio = () => {
-    if (processedAudioUrl) {
-      const selectedStyleData = PRESET_STYLES.find(s => s.id === selectedStyle);
-      const styleName = selectedStyleData?.name.replace(' ', '_').replace('+', '').toLowerCase() || 'processed';
-      
-      const a = document.createElement('a');
-      a.href = processedAudioUrl;
-      a.download = `${styleName}_${file?.name || 'audio.mp3'}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-  };
+  const resetToDefault = () => {
+    setSpeed(1)
+    setReverbDecay(0.01)
+    setBassBoost(0)
+    setActivePreset(null)
+  }
 
-  const getStyleIcon = (styleId: string) => {
-    return styleId === 'slowed_reverb' ? <Waves className="h-5 w-5" /> : <Zap className="h-5 w-5" />;
-  };
+  const handleVolumeChange = (value: number[]) => {
+    setVolume(value[0])
+  }
 
-  const getStyleDescription = (styleId: string) => {
-    return styleId === 'slowed_reverb' 
-      ? 'Dreamy, chill vibe with spacious reverb'
-      : 'Fast, energetic, high-pitched anime style';
-  };
+  const handleSpeedChange = (value: number[]) => {
+    setSpeed(value[0])
+    setActivePreset(null)
+  }
 
-  const selectedStyleData = PRESET_STYLES.find(s => s.id === selectedStyle);
+  const handleReverbDecayChange = (value: number[]) => {
+    setReverbDecay(value[0])
+    setActivePreset(null)
+  }
+
+  const handleBassBoostChange = (value: number[]) => {
+    setBassBoost(value[0])
+    setActivePreset(null)
+  }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <nav className="shadow-sm border-b text-foreground h-16">
-        <div className="flex justify-center items-center h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-6">
-          <h1 className='text-3xl font-bold italic text-transparent p-2 inline-block bg-clip-text bg-gradient-to-r from-rose-500 from- to-rose-300 to-100%'>
-            SlowNight
-          </h1>
-          <div className='absolute right-0 flex items-center mr-6'>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="text-center mb-12 relative">
+          <div className="absolute top-0 right-0">
             <ModeToggle />
           </div>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <h1 className="text-5xl font-bold text-primary">SlowNight</h1>
+          </div>
         </div>
-      </nav>
-      <div className="max-w-4xl mx-auto space-y-8 my-6">
-        {/* File Upload */}
-        <Card className="relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1"></div>
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Upload className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-xl">Upload Audio File</CardTitle>
-                <CardDescription className="text-base">
-                  Select your audio file to get started
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div
-              className="group relative border-2 border-dashed border-muted-foreground/25 rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 transition-all duration-200 bg-muted/20 hover:bg-muted/30"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <div className="flex flex-col items-center gap-4">
-                <div className="p-4 bg-primary/10 rounded-full group-hover:bg-primary/15 transition-colors">
-                  {file ? (
-                    <FileAudio className="h-8 w-8 text-primary" />
-                  ) : (
-                    <Upload className="h-8 w-8 text-primary" />
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <p className="text-lg font-medium">
-                    {file ? file.name : 'Click to upload or drag & drop'}
-                  </p>
-                  <p className="text-muted-foreground">
-                    MP3, WAV, FLAC, AAC up to 50MB
-                  </p>
-                </div>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="audio/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Style Selection */}
-        {file && (
-          <Card className="relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1"></div>
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Sparkles className="h-5 w-5 text-primary" />
+        {!audioSrc ? (
+          <div className="space-y-6">
+            <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors">
+              <CardHeader className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Music className="h-6 w-6 text-primary" />
+                  <CardTitle className="text-2xl">Upload Your Audio</CardTitle>
                 </div>
-                <div>
-                  <CardTitle className="text-xl">Choose Audio Style</CardTitle>
-                  <CardDescription className="text-base">
-                    Select your preferred audio transformation
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Style Options */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {PRESET_STYLES.map((style) => (
-                  <div
-                    key={style.id}
-                    className={`group relative p-6 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                      selectedStyle === style.id
-                        ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10'
-                        : 'border-muted-foreground/20 hover:border-primary/30 hover:bg-muted/30'
-                    }`}
-                    onClick={() => setSelectedStyle(style.id)}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className={`p-3 rounded-xl transition-all ${
-                        selectedStyle === style.id 
-                          ? 'bg-primary text-primary-foreground shadow-sm' 
-                          : 'bg-muted group-hover:bg-primary/10'
-                      }`}>
-                        {getStyleIcon(style.id)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-lg mb-2">{style.name}</h3>
-                        <p className="text-muted-foreground text-sm leading-relaxed mb-3">
-                          {getStyleDescription(style.id)}
-                        </p>
-                        <div className="flex flex-wrap gap-2 text-xs">
-                          <span className="px-2 py-1 bg-muted rounded-md">
-                            Speed: {style.settings.speed}x
-                          </span>
-                          <span className="px-2 py-1 bg-muted rounded-md">
-                            Reverb: {style.settings.reverb}%
-                          </span>
-                          <span className="px-2 py-1 bg-muted rounded-md">
-                            Pitch: {style.settings.pitch > 0 ? '+' : ''}{style.settings.pitch}
-                          </span>
+                <p className="text-muted-foreground">
+                  Transform your music with professional audio effects
+                </p>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <label 
+                  htmlFor="dropzone-file" 
+                  className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-border rounded-lg cursor-pointer bg-card hover:bg-accent/50 transition-colors group"
+                >
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <div className="p-4 bg-primary/10 rounded-full mb-4 group-hover:bg-primary/20 transition-colors">
+                      <Upload className="w-12 h-12 text-primary" />
+                    </div>
+                    <p className="mb-2 text-lg font-medium text-foreground">
+                      Click to upload your audio file
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Supports MP3, WAV, OGG formats • Maximum 10MB
+                    </p>
+                  </div>
+                  <Input 
+                    id="dropzone-file" 
+                    type="file" 
+                    accept="audio/*" 
+                    className="hidden" 
+                    onChange={handleFileUpload} 
+                  />
+                </label>
+              </CardContent>
+            </Card>
+
+            {/* Features Preview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="text-center">
+                <CardContent className="pt-6">
+                  <div className="p-3 bg-primary/10 rounded-full w-fit mx-auto mb-4">
+                    <Settings className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Advanced Controls</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Fine-tune speed, reverb, and bass boost
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="text-center">
+                <CardContent className="pt-6">
+                  <div className="p-3 bg-primary/10 rounded-full w-fit mx-auto mb-4">
+                    <Headphones className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Real-time Preview</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Listen to changes as you adjust settings
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="text-center">
+                <CardContent className="pt-6">
+                  <div className="p-3 bg-primary/10 rounded-full w-fit mx-auto mb-4">
+                    <Download className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Export Options</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Download as MP3 or WAV format
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        ) : (
+          /* Audio Processing Section */
+          <div className="space-y-6">
+            {/* Presets Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Music className="h-5 w-5 text-primary" />
+                  Quick Presets
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {Object.entries(presets).map(([key, preset]) => {
+                    const IconComponent = preset.icon
+                    return (
+                      <Button
+                        key={key}
+                        onClick={() => applyPreset(key as PresetKey)}
+                        variant={activePreset === key ? "default" : "outline"}
+                        className="h-auto p-4 flex flex-col items-center gap-2 text-center"
+                      >
+                        <IconComponent className="h-6 w-6" />
+                        <div>
+                          <div className="font-semibold">{preset.name}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {preset.description}
+                          </div>
                         </div>
+                      </Button>
+                    )
+                  })}
+                  <Button
+                    onClick={resetToDefault}
+                    variant={activePreset === null ? "default" : "outline"}
+                    className="h-auto p-4 flex flex-col items-center gap-2 text-center"
+                  >
+                    <Settings className="h-6 w-6" />
+                    <div>
+                      <div className="font-semibold">Default</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Reset to original
                       </div>
                     </div>
-                    {selectedStyle === style.id && (
-                      <div className="absolute top-3 right-3 w-3 h-3 bg-primary rounded-full shadow-sm"></div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Process Button */}
-              <Button
-                onClick={processAudio}
-                disabled={isProcessing}
-                className="w-full h-14 text-lg font-semibold relative overflow-hidden cursor-pointer"
-                size="lg"
-              >
-                {isProcessing ? (
-                  <>
-                    <div className="animate-spin mr-3 h-5 w-5 border-2 border-current border-t-transparent rounded-full"></div>
-                    Processing {selectedStyleData?.name}...
-                  </>
-                ) : (
-                  <>
-                    {getStyleIcon(selectedStyle)}
-                    <span className="ml-2">Apply {selectedStyleData?.name}</span>
-                  </>
-                )}
-              </Button>
-
-              {/* Progress Bar */}
-              {isProcessing && (
-                <div className="space-y-3">
-                  <Progress value={progress} className="h-2" />
-                  <p className="text-center text-muted-foreground text-sm">
-                    Transforming your audio with {selectedStyleData?.name}... {progress}%
-                  </p>
+                  </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
 
-        {/* Error Display */}
-        {error && (
-          <Alert className="border-destructive/50 bg-destructive/10">
-            <AlertDescription className="text-destructive">
-              {error}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Processed Audio */}
-        {processedAudioUrl && (
-          <Card className="relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1"></div>
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/15 rounded-lg">
-                  {getStyleIcon(selectedStyle)}
-                </div>
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    {selectedStyleData?.name} Result
-                    <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">
-                      Ready
+            {/* Audio Controls */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-primary" />
+                  <CardTitle>Audio Controls</CardTitle>
+                  {activePreset && (
+                    <span className="text-sm bg-primary/20 text-primary px-2 py-1 rounded-full">
+                      {presets[activePreset].name} Active
                     </span>
-                  </CardTitle>
-                  <CardDescription>
-                    Your audio transformed with {selectedStyleData?.name} effects
-                  </CardDescription>
+                  )}
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <audio
-                ref={audioRef}
-                src={processedAudioUrl}
-                controls
-                className="w-full h-12 bg-muted rounded-lg"
-              >
-                Your browser does not support the audio element.
-              </audio>
-              <Button
-                onClick={downloadProcessedAudio}
-                className="w-full h-12 text-base font-semibold cursor-pointer"
-              >
-                <Download className="h-5 w-5 mr-2" />
-                Download {selectedStyleData?.name} Audio
-              </Button>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div>
+                      <div className="flex justify-between items-center mb-3">
+                        <label className="text-sm font-medium text-foreground">Volume</label>
+                        <span className="text-sm font-mono bg-secondary px-2 py-1 rounded text-secondary-foreground">
+                          {volume}%
+                        </span>
+                      </div>
+                      <Slider
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[volume]}
+                        onValueChange={handleVolumeChange}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center mb-3">
+                        <label className="text-sm font-medium text-foreground">Playback Speed</label>
+                        <span className="text-sm font-mono bg-secondary px-2 py-1 rounded text-secondary-foreground">
+                          {speed.toFixed(2)}x
+                        </span>
+                      </div>
+                      <Slider
+                        min={0.5}
+                        max={2}
+                        step={0.01}
+                        value={[speed]}
+                        onValueChange={handleSpeedChange}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <div className="flex justify-between items-center mb-3">
+                        <label className="text-sm font-medium text-foreground">Reverb Decay</label>
+                        <span className="text-sm font-mono bg-secondary px-2 py-1 rounded text-secondary-foreground">
+                          {reverbDecay.toFixed(2)}
+                        </span>
+                      </div>
+                      <Slider
+                        min={0.01}
+                        max={10}
+                        step={0.01}
+                        value={[reverbDecay]}
+                        onValueChange={handleReverbDecayChange}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center mb-3">
+                        <label className="text-sm font-medium text-foreground">Bass Boost</label>
+                        <span className="text-sm font-mono bg-secondary px-2 py-1 rounded text-secondary-foreground">
+                          {bassBoost.toFixed(1)} dB
+                        </span>
+                      </div>
+                      <Slider
+                        min={0}
+                        max={12}
+                        step={0.1}
+                        value={[bassBoost]}
+                        onValueChange={handleBassBoostChange}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Audio Player */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Headphones className="h-5 w-5 text-primary" />
+                  <CardTitle>Audio Player</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <CustomAudioPlayer 
+                  key={audioSrc}
+                  src={audioSrc} 
+                  audioName={audioName} 
+                  volume={volume} 
+                  speed={speed}
+                  reverbDecay={reverbDecay}
+                  bassBoost={bassBoost}
+                  resetAudio={handleResetAudio}
+                  onDownload={handleDownload}
+                />
+              </CardContent>
+            </Card>
+          </div>
         )}
+        <footer className='text-muted-foreground text-center mt-4'>Made with ❤️ by 
+          <Link href="https://github.com/SimoHypers" className='ml-2 underline underline-offset-2' target='_blank'>
+            SimoHypers
+          </Link>
+        </footer>
       </div>
     </div>
-  );
+  )
 }
