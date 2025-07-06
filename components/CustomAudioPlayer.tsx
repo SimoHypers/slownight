@@ -298,6 +298,7 @@ export function CustomAudioPlayer({ src, audioName = "Unknown Audio", volume, sp
         <Button 
           onClick={() => handleDownload('mp3')} 
           disabled={isProcessingMp3 || isProcessingWav}
+          size="sm"
         >
           {isProcessingMp3 ? (
             <>
@@ -311,6 +312,7 @@ export function CustomAudioPlayer({ src, audioName = "Unknown Audio", volume, sp
         <Button 
           onClick={() => handleDownload('wav')} 
           disabled={isProcessingMp3 || isProcessingWav}
+          size="sm"
         >
           {isProcessingWav ? (
             <>
@@ -324,6 +326,7 @@ export function CustomAudioPlayer({ src, audioName = "Unknown Audio", volume, sp
         <Button 
           onClick={resetAudio} 
           disabled={isProcessingMp3 || isProcessingWav}
+          size="sm"
         >
           Convert Another Song
         </Button>
